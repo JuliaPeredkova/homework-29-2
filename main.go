@@ -5,79 +5,35 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
-	intChan := make(chan int)
-
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, syscall.SIGINT)
+	chanInt := make(chan int)
+	chanSignal := make(chan os.Signal, 1)
+	signal.Notify(chanSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
-		i := 1
-		for {
-			fmt.Println(<-intChan)
-			i++
+		for i := range chanInt {
+			fmt.Println(i)
 		}
 	}()
-	go square(intChan, signChan)
+
+	square(chanInt, chanSignal)
+
 }
 
 func square(iCh chan int, sCh chan os.Signal) {
 	i := 1
 	for {
 		select {
+		case <-sCh:
+			fmt.Println("Выхожу из программы")
+			return
 		case iCh <- i * i:
+			time.Sleep(1 * time.Second)
 			i++
-		case <-sCh:
-			fmt.Println("выхожу из программы")
-			return
 		}
+
 	}
 }
-
-/*
-	intChan := make(chan int)
-	go square(intChan)
-
-	for i := range intChan {
-		fmt.Println(i)
-	}
-
-}
-
-func square(iCh chan int) {
-	i := 1
-	for {
-		iCh <- i * i
-		time.Sleep(1 * time.Second)
-		i++
-	}
-}
-*/
-
-/*
-	intChan := make(chan int) //создали канал для чисел
-
-	signChan := make(chan os.Signal, 1) //создали канал для сигналов
-
-	signal.Notify(signChan, syscall.SIGINT)
-
-	go square(intChan, signChan)
-
-}
-
-func square(iCh chan int, sCh chan os.Signal) {
-	i := 1
-	for {
-		select {
-		case <-sCh:
-			fmt.Println("выхожу из программы")
-			return
-		default:
-			iCh <- i * i
-			fmt.Println(<-iCh)
-		}
-		i++
-	}
-*/
